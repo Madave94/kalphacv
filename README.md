@@ -20,7 +20,7 @@ Run setup.py: `python setup.py develop`
 
 ## 3 Using the library
 
-The main file `iaa.py` has 7 input arguments
+The main file `iaa.py` has 6 input arguments
 
 `mode` = bbox or segm box depending on the type of annotation to evaluate
 
@@ -34,6 +34,9 @@ The main file `iaa.py` has 7 input arguments
 
 `--filter` = filter by specific files or books, default/no filter is "" 
 
+Example usage:
+
+`python3 src/iaadet/calculate_iaa.py bbox src/landscape_annotations.json test_result`
 
 ## 4 Run tests
 
