@@ -47,12 +47,13 @@ Navigate to parent folder and run:
 ## Cite us
 
 ```
-@inproceedings{tschirschwitz2022texbig,
+@inproceedings{10.1007/978-3-031-16788-1_22,
   title={A Dataset for Analysing Complex Document Layouts in the Digital Humanities and its Evaluation with Krippendorff ’s Alpha},
   author={Tschirschwitz, David and Klemstein, Franziska and Stein, Benno and Rodehorst, Volker},
-  booktitle={DAGM German Conference on Pattern Recognition},
+  booktitle="Pattern Recognition",
   year={2022},
-  organization={Springer},
-  note={(in press)}
+  publisher="Springer International Publishing",
+  address="Cham",
+  pages="354--374",
 }
 ```
