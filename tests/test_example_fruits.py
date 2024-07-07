@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-from iaadet import calculate_iaa, krippendorff_alpha
-from iaadet import pre_processing
-from iaadet import reliability_data
-from iaadet import hungarian_matching
-from iaadet import iou
+from kalphacv import calculate_iaa, krippendorff_alpha
+from kalphacv import pre_processing
+from kalphacv import reliability_data
+from kalphacv import hungarian_matching
+from kalphacv import iou
 
 @pytest.fixture
 def annotation_list_fruits():

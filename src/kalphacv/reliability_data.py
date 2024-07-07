@@ -60,7 +60,7 @@
 
 
 from collections import defaultdict
-from iaadet import hungarian_matching
+from kalphacv import hungarian_matching
 
 class MatrixEntry:
     def __init__(self, entry, annotator_name):
@@ -99,7 +99,7 @@ class ReliabilityData:
         self.imageName = imageName
         self.iou_threshold = iou_threshold
         self.id_to_annotator_names = { # this contains the image id to annotator name mapping
-            img["id"]: img["annotator"] for img in image_name_to_images_by_annotator
+            img["id"]: img["annotator"] if "annotator" in img else img["rad_id"] for img in image_name_to_images_by_annotator
         } # this short form is called a list/dictonary comprehension
         self.num_annotators = len(image_name_to_images_by_annotator)
         self.all_entries = self.add_entry_unites(image_annotations)

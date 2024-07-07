@@ -1,6 +1,6 @@
 import pytest
-from iaadet.pre_processing import *
-from iaadet.reliability_data import *
+from kalphacv.pre_processing import *
+from kalphacv.reliability_data import *
 
 
 """-------- Annotators ------------"""

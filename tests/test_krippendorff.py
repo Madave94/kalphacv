@@ -1,4 +1,4 @@
-from iaadet import krippendorff_alpha
+from kalphacv import krippendorff_alpha
 from test_resources import *
 
 def test_krippendorff(me_left_match_ann_A,me_center_match_ann_A, me_right_match_ann_A, me_right_nmatch_ann_A, me_right_nmatch_ann_B, me_category7_ann_B,me_category8_ann_A, empty_entry_A, empty_entry_B, empty_entry_C):

@@ -16,33 +16,86 @@ Create virtual environment: `python3 -m venv iaa_env`
 
 Activate virtual environment: `source iaa_env/bin/activate`
 
-Run setup.py: `python setup.py develop`
+Run setup.py: `pip install .`
 
 ## 3 Using the library
 
-The main file `iaa.py` has 6 input arguments
+### Formatting your COCO-JSON
 
-`mode` = bbox or segm box depending on the type of annotation to evaluate
+There are two requirements that your annotation file needs to fulfill so that it can calculate the IAA from the COCO-JSON.
 
-`result_destination` = path where the results are stored
+1. Files/Images annotated by different annotators need to have different image IDs. This is logical since otherwise it would not be possible to map the annotations to annotators.
+2. You need to provide an "annotator" key and a value for the annotator that annotated the image for each annotator.
 
-`--annotation_format` = format of the annotations for which to evaluate the iaa - only coco is valid currently
+A single entry in the images list might look like this:
+```
+{
+    'width': 640,                     # Image width
+    'height': 427,                    # Image height
+    'file_name': '000000397133.jpg',  # File name of the image
+    'id': 397133,                     # Unique image ID
+    'annotator': 'coder_a'            # Annotator identifier
+}
+```
 
-`--iou_threshold` = values above this threshold are considered to be the same boxes/masks, default is 0.5
+It can contain additional information. In case you do not have any coder information, just split into generic groups.
 
-`--iaa_threshold` = values above this threshold are considered okay, all other are malicious, default is 0.6
 
-`--filter` = filter by specific files or books, default/no filter is "" 
+### Command Line Usage
 
-Example usage:
+The main file `calculate_iaa.py` has 6 input arguments, with `mode` and `source_annotation_path` being required:
 
-`python3 src/iaadet/calculate_iaa.py bbox src/landscape_annotations.json test_result`
+1. **`mode`** (required)  
+   Type of annotation to evaluate: `bbox` or `segm`.
 
-## 4 Run tests
+2. **`source_annotation_path`** (required)  
+   Path to the annotation file.
 
-Navigate to parent folder and run:
+3. **`--result_destination`** (optional)  
+   Path where the results are stored.
 
-`pytest -v`
+4. **`--annotation_format`** (optional)  
+   Format of the annotations for which to evaluate the IAA. Only `coco` is valid currently. Default is `coco`.
+
+5. **`--iou_threshold`** (optional)  
+   Values above this threshold are considered to be the same boxes/masks. Default is `0.5`.
+
+6. **`--iaa_threshold`** (optional)  
+   Values above this threshold are considered okay; all others are malicious. Default is `0.6`.
+
+7. **`--filter`** (optional)  
+   Filter by specific files or books. Default is `""` (no filter).
+
+8. **`--filter_empty`** (optional)  
+   Set this flag to filter all images that do not contain a single annotation.
+
+### Example Usage:
+
+To evaluate bounding box annotations using the `calculate_iaa.py` script, you can run the following command:
+
+```sh
+python3 src/iaadet/calculate_iaa.py bbox src/landscape_annotations.json
+```
+
+### Python API Usage
+
+If you are importing the package and using the `calculate_iaa_from_annotations` function directly in your code, you can do so as follows:
+
+```
+from kalphacv import calculate_iaa_from_annotations
+
+calculate_iaa_from_annotations(
+    mode="bbox",
+    source_annotation_path="path/to/annotations.json",
+    result_destination="path/to/results",
+    annotation_format="coco",
+    iou_threshold=0.5,
+    iaa_threshold=0.6,
+    filter="",
+    filter_empty=False
+)
+```
+
 
 ## Cite us
 

@@ -1,4 +1,4 @@
-from iaadet import iou
+from kalphacv import iou
 from test_resources import *
 
 def test_bbox_perfect_overlap():

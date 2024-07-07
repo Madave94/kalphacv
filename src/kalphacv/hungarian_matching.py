@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from iaadet import reliability_data
-from iaadet import iou
+from kalphacv import reliability_data
+from kalphacv import iou
 
 def run_matching(available_entries_old_ann, unmatched_entries_new_ann, iou_threshold, mode):
     """
