@@ -1,8 +1,10 @@
 from collections import defaultdict
+from tqdm import tqdm
 
 class Preprocess:
-    def __init__(self, annotations):
+    def __init__(self, annotations, silent):
         self.annotations = annotations
+        self.silent = silent
         self.image_set = self.find_all_unique_images()
         self.sorted_annotations = self.sort_images()
         self.image_name_to_images_by_annotator = self.create_file_name_to_images_by_annotator_dict()
@@ -35,12 +37,12 @@ class Preprocess:
 
         included_image_ids = []
         image_id_to_file_name = {}
-        for image in self.annotations["images"]:
+        for image in tqdm(self.annotations["images"], desc=f"1/4 - Pre-Processing images", disable=self.silent) :
             if image["file_name"] in self.image_set:
                 included_image_ids.append(image["id"])
                 image_id_to_file_name[image["id"]] = image["file_name"]
 
-        for single_annotation in self.annotations["annotations"]:
+        for single_annotation in tqdm(self.annotations["annotations"], desc=f"2/4 - Pre-Processing annotations", disable=self.silent):
             # check if this image is part of the collection of image_ids
             if single_annotation["image_id"] in included_image_ids:
                 file_name = image_id_to_file_name[single_annotation["image_id"]]
@@ -57,7 +59,7 @@ class Preprocess:
             This relies on the filtered images that allow the calculation of an IAA, as returned by find_all_unique_images
         """
         image_name_to_images_by_annotator = defaultdict(list)
-        for image in self.annotations["images"]:
+        for image in tqdm(self.annotations["images"], desc=f"3/4 - Filtering multi-annotated samples", disable=self.silent):
             image_name = image["file_name"]
             if image_name in self.image_set:
                 image_name_to_images_by_annotator[image_name].append(image)

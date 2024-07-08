@@ -9,17 +9,17 @@ from kalphacv import reliability_data
 from kalphacv import krippendorff_alpha
 from kalphacv import csv_data
 
-def calculate_iaa(mode, annotations, iou_threshold, iaa_threshold, result_destination=None):
+def calculate_iaa(mode, annotations, iou_threshold, iaa_threshold, result_destination=None, silent=False):
     """
     main method for calculating the inter annotator agreement
     """
 
-    preprocess_data = pre_processing.Preprocess(annotations)
+    preprocess_data = pre_processing.Preprocess(annotations, silent=silent)
 
     alpha_list = []
 
     # for every image
-    for image_name in tqdm(preprocess_data.image_set, desc=f"Processing images"):
+    for image_name in tqdm(preprocess_data.image_set, desc=f"4/4 - Calculating K-Alpha", disable=silent):
         # extract items from preprocessing
         image_annotations = preprocess_data.sorted_annotations[image_name]
         image_name_to_images_by_annotator = preprocess_data.image_name_to_images_by_annotator[image_name]
@@ -37,7 +37,7 @@ def calculate_iaa(mode, annotations, iou_threshold, iaa_threshold, result_destin
 
     if result_destination is not None:
         csv_data.to_csv_all(result_destination, preprocess_data.image_set, iaa_threshold, alpha_list)
-    else:
+    elif not silent:
         print(sum(alpha_list) / len(alpha_list))
 
     # should return alpha value here
@@ -86,7 +86,7 @@ def load_data(annotation_format, file_path, filter, filter_empty=False):
         return annotations
 
 def calculate_iaa_from_annotations(mode, source_annotation_path, result_destination=None, annotation_format="coco",
-                                   iou_threshold=0.5, iaa_threshold=0.6, filter="", filter_empty=False):
+                                   iou_threshold=0.5, iaa_threshold=0.6, filter="", filter_empty=False, silent=False):
     # load annotations
     annotations = load_data(
         annotation_format,
@@ -103,7 +103,8 @@ def calculate_iaa_from_annotations(mode, source_annotation_path, result_destinat
                   annotations,
                   result_destination=result_destination,
                   iou_threshold=iou_threshold,
-                  iaa_threshold=iaa_threshold)
+                  iaa_threshold=iaa_threshold,
+                  silent=silent)
     return iaa
 
 def parse_arguments():
@@ -125,6 +126,10 @@ def parse_arguments():
     parser.add_argument("--filter_empty", help="set this flag to filter all images that do not contain a single annotation", action="store_true")
     parser.set_defaults(filter_empty=False)
 
+    # set silent flag for progress bar and print-out
+    parser.add_argument("--silent", help="set this flag to omit print-outs.", action="store_true")
+    parser.set_defaults(silent=False)
+
     args = parser.parse_args()
 
     # check files/folders exist
@@ -141,7 +146,7 @@ def parse_arguments():
 if __name__ == '__main__':
     args = parse_arguments()
     calculate_iaa_from_annotations(args.mode, args.source_annotation_path, args.result_destination, args.annotation_format,
-                                   args.iou_threshold, args.iaa_threshold, args.filter, args.filter_empty)
+                                   args.iou_threshold, args.iaa_threshold, args.filter, args.filter_empty, args.silent)
 
 
 
