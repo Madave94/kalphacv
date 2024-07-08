@@ -1,7 +1,7 @@
 import csv
 import os
 
-def to_csv_all(result_destination, image_list, iaa_threshold, alpha_list):
+def to_csv_all(result_destination, image_list, iaa_threshold, iou_threshold, alpha_list):
     """
     Save all images with iaa value and a tag if image is malicious (iaa under threshold).
     @param result_destination: destination where csv file should be saved
@@ -10,7 +10,7 @@ def to_csv_all(result_destination, image_list, iaa_threshold, alpha_list):
     @param alpha_list: list of krippendorff alpha for every image
 
     """
-    output_file = os.path.join(result_destination, "all_results.csv")
+    output_file = os.path.join(result_destination, "{}iou_all_results.csv".format(iou_threshold))
     header = ["file name", "iaa", "malicious"]
     with open(output_file, "w") as file:
         writer = csv.writer(file)
