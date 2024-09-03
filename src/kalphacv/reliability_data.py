@@ -69,7 +69,7 @@ class MatrixEntry:
         self.annotator_id = entry["image_id"]
         self.id = entry["id"]
         self.attributes = entry["attributes"] if "attributes" in entry else None
-        self.segmentation = entry["segmentation"] if "segmentation" in entry else None
+        self.segm = entry["segmentation"] if "segmentation" in entry else None
         self.annotator_name = annotator_name
 
     def __repr__(self):
@@ -84,11 +84,12 @@ class MatrixEntry:
 class EmptyEntry(MatrixEntry):
     def __init__(self, annotator_name):
         super(MatrixEntry, self).__init__()
-        self.bbox = [0.0, 0.0, 0.0, 0.0]
+        self.bbox = None
         self.category = "*"
         self.id = -1
         self.annotator_id = 0
         self.attributes = {}
+        self.segm = None
         self.annotator_name = annotator_name
 
     def __repr__(self):

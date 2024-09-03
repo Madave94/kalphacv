@@ -95,9 +95,8 @@ def generate_iou_matrix(available_entries_old_ann, unmatched_entries_new_ann, mo
         for j in range(0, len(unmatched_entries_new_ann)):
             if mode == 'bbox':
                 iou_value = iou.calc_iou_bbox(available_entries_old_ann[i].bbox, unmatched_entries_new_ann[j].bbox)
-            if mode == 'seg':
-                iou_value = None
-                assert "not implemented yet"
+            if mode == 'segm':
+                iou_value = iou.calc_iou_seg(available_entries_old_ann[i].segm, unmatched_entries_new_ann[j].segm)
 
             iou_matrix[i][j] = 1-iou_value
     return iou_matrix
