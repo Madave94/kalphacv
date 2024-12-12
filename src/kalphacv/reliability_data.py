@@ -61,19 +61,25 @@
 
 from collections import defaultdict
 from kalphacv import hungarian_matching
+import hashlib
+import numpy as np
 
 class MatrixEntry:
-    def __init__(self, entry, annotator_name):
+    def __init__(self, entry, id, image_size):
+        self.id = id
         self.bbox = entry["bbox"]
-        self.category = entry["category_id"]
-        self.annotator_id = entry["image_id"]
-        self.id = entry["id"]
-        self.attributes = entry["attributes"] if "attributes" in entry else None
+        self.category = self.category_transform(entry["category_id"])
+        self.rater = entry["rater"]
         self.segm = entry["segmentation"] if "segmentation" in entry else None
-        self.annotator_name = annotator_name
+        if isinstance(self.segm, list):
+            self.segm_type = "polygon"
+        elif isinstance(self.segm, np.ndarray):
+            self.segm_type = "mask"
+            # Important --- this expects height, width! Format for
+            self.image_size = image_size
 
     def __repr__(self):
-        return repr("ME " + str(self.id))
+        return repr("ME " + str(self.id) + " - " + str(self.rater))
 
     def __lt__(self, other):
         return self.id < other.id
@@ -81,43 +87,48 @@ class MatrixEntry:
     def __gt__(self, other):
         return self.id > other.id
 
+    def category_transform(self, category):
+        if isinstance(category, int):
+            return category
+        elif isinstance(category, str):
+            return int(hashlib.sha256(category.encode("utf-8")).hexdigest(), 16)
+        else:
+            raise Exception("Invalid category format, should be int or str")
+
 class EmptyEntry(MatrixEntry):
     def __init__(self, annotator_name):
         super(MatrixEntry, self).__init__()
+        self.id = -1
         self.bbox = None
         self.category = "*"
-        self.id = -1
-        self.annotator_id = 0
-        self.attributes = {}
         self.segm = None
-        self.annotator_name = annotator_name
+        self.rater = annotator_name
+        # segm type
 
     def __repr__(self):
         return "EE"
 
 class ReliabilityData:
-    def __init__(self, imageName, image_annotations, image_name_to_images_by_annotator, iou_threshold):
-        self.imageName = imageName
-        self.iou_threshold = iou_threshold
-        self.id_to_annotator_names = { # this contains the image id to annotator name mapping
-            img["id"]: img["annotator"] if "annotator" in img else img["rad_id"] for img in image_name_to_images_by_annotator
-        } # this short form is called a list/dictonary comprehension
-        self.num_annotators = len(image_name_to_images_by_annotator)
-        self.all_entries = self.add_entry_unites(image_annotations)
+    def __init__(self, image_name, annotations, raters, image_size):
+        self.image_name = image_name
+        self.raters = sorted(raters)
+        self.num_annotators = len(raters)
+        self.image_size = image_size
+        self.all_entries = self.add_entry_units(annotations, image_size)
 
-    def __call__(self, mode):
+    def __call__(self, mode, iou_threshold):
         """
             Call this function to create the coincidence matrix
         """
         # run matching algorithm with previously initialized parameter group
         # re initialize the dictionaries that will be worked on to prevent funky behaviour
-        initial_annotator = self.get_lowest_element_in_set(self.id_to_annotator_names) # get first annotator
+        initial_annotator = self.raters[0]
         matching_matrix = [[] for _ in range(self.num_annotators)] #
         matching_matrix[0] = list(self.all_entries[initial_annotator]) # list( entries_ann_A , [] , [] )
-        return self.recursive_matching(matching_matrix, {initial_annotator}, mode ) # recursive call
+        return self.recursive_matching(matching_matrix, {initial_annotator}, mode, iou_threshold) # recursive call
 
-    def run(self, mode):
-        return self.__call__(mode)
+    def run(self, mode, iou_threshold):
+        return self.__call__(mode, iou_threshold)
 
     def get_lowest_element_in_set(self, annotator_set: set):
         """
@@ -128,34 +139,36 @@ class ReliabilityData:
         lowest_annotator = lst[0]
         return lowest_annotator
 
-    def add_entry_unites(self, image_annotations):
+    def add_entry_units(self, annotations, image_size):
         """
-             creates a dictonary with the image id as key and a list of elements associated with this image id
-             the image id correspondece to the annotator
+             creates a dictonary with the rater-id as key and a list of elements associated with this rater
         """
-        all_entries = defaultdict(list)
-        for annotation in image_annotations:
-            annotator_name = self.id_to_annotator_names[annotation["image_id"]]
-            entry = MatrixEntry(annotation, annotator_name)
-            annotator_id = entry.annotator_id
-            all_entries[annotator_id].append(entry)
+        counter = 0
+        all_entries = {rater: [] for rater in self.raters}
+        for annotation in annotations:
+            rater = annotation["rater"]
+            if rater not in self.raters:
+                raise Exception(f"Unexpected rater in {self.image_name} with {rater}, but image info says only {self.raters} have annotated this sample.")
+            entry = MatrixEntry(annotation, counter, image_size)
+            counter +=1
+            all_entries[rater].append(entry)
         for entries in all_entries.values():
             entries.sort()
         return all_entries
 
     # recursive assignment
-    def recursive_matching(self, matching_matrix, matched_annotators: set, mode):
+    def recursive_matching(self, matching_matrix, matched_annotators: set, mode, iou_threshold):
         """
             See description on top of this file for the algorithm description
         """
         # set operation to find all unused annotator
-        unmatched_annotators = set(self.id_to_annotator_names).difference(matched_annotators) # Set difference A - B
+        unmatched_annotators = set(self.raters).difference(matched_annotators) # Set difference A - B
         if len(unmatched_annotators) == 0: # This criteria is needed to finish the recursion
             return matching_matrix
         else:
             current_row_len = len(matching_matrix[0])
             next_annotator_to_match = self.get_lowest_element_in_set(unmatched_annotators)  # get first annotator
-            matching_matrix[len(matched_annotators)] = [EmptyEntry(self.id_to_annotator_names[next_annotator_to_match])] * current_row_len # add empty elements to fill length
+            matching_matrix[len(matched_annotators)] = [EmptyEntry(next_annotator_to_match)] * current_row_len # add empty elements to fill length
             unmatched_entries = set(self.all_entries[next_annotator_to_match])
             for idx, matched_annotator_name in enumerate(matched_annotators):
                 # run matching algorithm with all bboxes of matched_annotator_name and all bboxes of unmatched_bboxes of next_annotator_to_match
@@ -163,7 +176,7 @@ class ReliabilityData:
 
                 # run matching
                 if len(available_entries_old_ann) > 0 and len(unmatched_entries) > 0:
-                    matched_pairs = hungarian_matching.run_matching(available_entries_old_ann, unmatched_entries, self.iou_threshold, mode)
+                    matched_pairs = hungarian_matching.run_matching(available_entries_old_ann, unmatched_entries, iou_threshold, mode)
                 else:
                     matched_pairs = []
 
@@ -179,10 +192,10 @@ class ReliabilityData:
                 # it also doesn't require to
                 if len(unmatched_entries) == 0:
                     matched_annotators.add(next_annotator_to_match)
-                    return self.recursive_matching(matching_matrix, matched_annotators, mode)
+                    return self.recursive_matching(matching_matrix, matched_annotators, mode, iou_threshold)
             matching_matrix = self.add_unmatched_entries_to_new_rows(matching_matrix, matched_annotators, unmatched_entries)
             matched_annotators.add(next_annotator_to_match)
-            return self.recursive_matching(matching_matrix, matched_annotators, mode)
+            return self.recursive_matching(matching_matrix, matched_annotators, mode, iou_threshold)
 
     def positional_retrieval(self, matching_matrix, matched_annotator_idx, unmatched_annotator_idx):
         """
@@ -225,6 +238,6 @@ class ReliabilityData:
                 if len(matching_matrix[matrix_row]) == 0:
                     annotator_name = matched_annotators[matrix_row]
                 else:
-                    annotator_name = matching_matrix[matrix_row][0].annotator_name # get annotator name
+                    annotator_name = matching_matrix[matrix_row][0].rater # get annotator name
                 matching_matrix[matrix_row] += [EmptyEntry(annotator_name)] * number_of_cols_to_add
         return matching_matrix

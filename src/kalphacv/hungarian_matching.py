@@ -61,10 +61,10 @@ def is_in_threshold(iou_list, iou_threshold):
 def add_empty_entries(old_ann, new_ann):
     num_empty_entries = abs(len(old_ann) - len(new_ann))
     if len(old_ann) < len(new_ann):
-        annotator_name = old_ann[0].annotator_name
+        annotator_name = old_ann[0].rater
         old_ann.extend([reliability_data.EmptyEntry(annotator_name) for _ in range(num_empty_entries)])
     else:
-        annotator_name = new_ann[0].annotator_name
+        annotator_name = new_ann[0].rater
         new_ann.extend([reliability_data.EmptyEntry(annotator_name) for _ in range(num_empty_entries)])
     return old_ann, new_ann
 
@@ -96,7 +96,13 @@ def generate_iou_matrix(available_entries_old_ann, unmatched_entries_new_ann, mo
             if mode == 'bbox':
                 iou_value = iou.calc_iou_bbox(available_entries_old_ann[i].bbox, unmatched_entries_new_ann[j].bbox)
             if mode == 'segm':
-                iou_value = iou.calc_iou_seg(available_entries_old_ann[i].segm, unmatched_entries_new_ann[j].segm)
+                if available_entries_old_ann[i].segm is None:
+                    iou_value = 0.0
+                elif available_entries_old_ann[i].segm_type == "polygon":
+                    iou_value = iou.calc_iou_segm_poly(available_entries_old_ann[i].segm, unmatched_entries_new_ann[j].segm)
+                elif available_entries_old_ann[i].segm_type == "mask":
+                    image_size = available_entries_old_ann[i].image_size
+                    iou_value = iou.calc_iou_segm_mask(available_entries_old_ann[i], unmatched_entries_new_ann[j], image_size)
 
             iou_matrix[i][j] = 1-iou_value
     return iou_matrix

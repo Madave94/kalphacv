@@ -1,9 +1,7 @@
 import numpy as np
 from PIL import Image, ImageDraw
-from scipy.spatial import distance
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon
 from shapely.validation import make_valid
-from shapely.errors import TopologicalError
 from shapely.ops import unary_union
 
 def calc_iou_bbox(bbox1, bbox2):
@@ -40,7 +38,7 @@ def calc_iou_bbox(bbox1, bbox2):
     return iou
 
 
-def calc_iou_seg(segm1, segm2):
+def calc_iou_segm_poly(segm1, segm2):
     """
     Calculate the IoU of two segmentation masks using Shapely.
 
@@ -94,6 +92,65 @@ def calc_iou_seg(segm1, segm2):
     iou = intersection.area / union.area
     return iou
 
+def calc_iou_segm_mask(entry1, entry2, image_size):
+    mask1 = entry1.segm
+    mask2 = entry2.segm
+    bbox1 = entry1.bbox
+    bbox2 = entry2.bbox
+
+    if mask1 is None or mask2 is None:
+        return 0.0
+
+    bbox_iou = calc_iou_bbox(bbox1, bbox2)
+    if bbox_iou == 0.0:
+        return 0.0
+
+    def adjust_bbox_and_region(mask, bbox, image_size):
+        """Adjust bounding box to fit within image boundaries and prepare the mask."""
+        x1_f, y1_f = bbox[0] * image_size[1], bbox[1] * image_size[0]
+        x2_f, y2_f = (bbox[0] + bbox[2]) * image_size[1], (bbox[1] + bbox[3]) * image_size[0]
+
+        x1, x2 = int(np.floor(x1_f)), int(np.ceil(x2_f))
+        y1, y2 = int(np.floor(y1_f)), int(np.ceil(y2_f))
+
+        # Adjust if there's a mismatch in broadcasting dimensions
+        if x2 - x1 != mask.shape[1]:
+            if abs(x1_f - x1) <= abs(x2 - x2_f):
+                x1 = max(0, x1 - 1 if abs(x1_f - x1) > 1 else x1)
+            else:
+                x2 = min(image_size[1], x2 + 1 if abs(x2 - x2_f) > 1 else x2)
+
+        if y2 - y1 != mask.shape[0]:
+            if abs(y1_f - y1) <= abs(y2 - y2_f):
+                y1 = max(0, y1 - 1 if abs(y1_f - y1) > 1 else y1)
+            else:
+                y2 = min(image_size[0], y2 + 1 if abs(y2 - y2_f) > 1 else y2)
+
+        # Create the adjusted full-sized mask
+        adjusted_mask = np.zeros((y2 - y1, x2 - x1), dtype=bool)
+        adjusted_mask[:mask.shape[0], :mask.shape[1]] = mask
+
+        return x1, y1, x2, y2, adjusted_mask
+
+    # Adjust masks and bounding boxes
+    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2, adjusted_mask1 = adjust_bbox_and_region(mask1, bbox1, image_size)
+    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2, adjusted_mask2 = adjust_bbox_and_region(mask2, bbox2, image_size)
+
+    # Place adjusted masks into full-sized image masks
+    full_mask1 = np.zeros(image_size, dtype=bool)
+    full_mask2 = np.zeros(image_size, dtype=bool)
+
+    full_mask1[bbox1_y1:bbox1_y2, bbox1_x1:bbox1_x2] = adjusted_mask1
+    full_mask2[bbox2_y1:bbox2_y2, bbox2_x1:bbox2_x2] = adjusted_mask2
+
+    # Calculate intersection and union on full-sized masks
+    intersection = np.logical_and(full_mask1, full_mask2).sum()
+    union = np.logical_or(full_mask1, full_mask2).sum()
+
+    if union == 0:  # Avoid division by zero
+        return 0.0
+
+    return intersection / union
 
 def mask_to_array(seg, width, height):
     """

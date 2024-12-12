@@ -2,74 +2,63 @@ from collections import defaultdict
 from tqdm import tqdm
 
 class Preprocess:
-    def __init__(self, annotations, silent):
-        self.annotations = annotations
+    """
+       Processes the dataset to get the canonical annotation format including rater_list and rater as attributes for
+       images and annotations.
+    """
+    def __init__(self, unprocessed_annotations, images_rater_key, annotations_rater_key, silent):
         self.silent = silent
-        self.image_set = self.find_all_unique_images()
-        self.sorted_annotations = self.sort_images()
-        self.image_name_to_images_by_annotator = self.create_file_name_to_images_by_annotator_dict()
-        self.category_list = self.find_all_categories()
+        self.image_names = None
+        self.raters_per_image = None
+        self.annotations_per_image = None
+        self.size_per_image = None
+        self.preprocess_annotations(unprocessed_annotations, images_rater_key, annotations_rater_key)
 
-    def find_all_unique_images(self):
-        """
-            Returns a set of all uniquly existing image that have been at least annotated by two annotators
-            At least annotated by two annotators can also mean that one annotator did not make a annotation on the page,
-            so intended to leave the page blank.
-            -> meaning all images where an IAA can be calculated
-        """
-        file_name_count = defaultdict(int)
-        for current_image in self.annotations["images"]:
-            file_name_count[current_image["file_name"]] += 1
-
-        # Extract file names that appear more than once
-        duplicates = [file_name for file_name, count in file_name_count.items() if count > 1]
-        return duplicates
-
-
-    def sort_images(self):
-        """
-            Returns:
-                dictonary containing:
-                    key: file_name of a single image
-                    value: list(annotations from all annotators coressponding to that key)
-        """
-        sorted_annotations = {key: [] for key in self.image_set}
-
-        included_image_ids = []
-        image_id_to_file_name = {}
-        for image in tqdm(self.annotations["images"], desc=f"1/4 - Pre-Processing images", disable=self.silent) :
-            if image["file_name"] in self.image_set:
-                included_image_ids.append(image["id"])
-                image_id_to_file_name[image["id"]] = image["file_name"]
-
-        for single_annotation in tqdm(self.annotations["annotations"], desc=f"2/4 - Pre-Processing annotations", disable=self.silent):
-            # check if this image is part of the collection of image_ids
-            if single_annotation["image_id"] in included_image_ids:
-                file_name = image_id_to_file_name[single_annotation["image_id"]]
-                sorted_annotations[file_name].append(single_annotation)
-
-        return sorted_annotations
-
-    def create_file_name_to_images_by_annotator_dict(self):
-        """
-            Create a dictionary with
-                file_name as key
-                list of all images from each annotator
-
-            This relies on the filtered images that allow the calculation of an IAA, as returned by find_all_unique_images
-        """
-        image_name_to_images_by_annotator = defaultdict(list)
-        for image in tqdm(self.annotations["images"], desc=f"3/4 - Filtering multi-annotated samples", disable=self.silent):
-            image_name = image["file_name"]
-            if image_name in self.image_set:
-                image_name_to_images_by_annotator[image_name].append(image)
-        return image_name_to_images_by_annotator
-
-    def find_all_categories(self):
-        all_categories = {}
-        if 'categories' in self.annotations.keys():
-            for category in self.annotations['categories']:
-                all_categories[category['id']] = category['name']
-            return all_categories
+    def preprocess_annotations(self, unprocessed_annotations, images_rater_key, annotations_rater_key):
+        image_names = []
+        raters_per_image = {}
+        annotations_per_image = defaultdict(list)
+        image_id_to_image_name = {}
+        image_size = {}
+        ### Case 1 - both keys are there
+        if images_rater_key and annotations_rater_key:
+            for image in unprocessed_annotations["images"]:
+                image_name = image["file_name"]
+                image_names.append(image_name)
+                image_id_to_image_name[image["id"]] = image_name
+                raters = image[images_rater_key]
+                raters_per_image[image["file_name"]] = raters
+                image["rater_list"] = raters # add field, might be used later
+                image_size[image_name] = (image["height"], image["width"])
+            for annotation in unprocessed_annotations["annotations"]:
+                image_name = image_id_to_image_name[annotation["image_id"]]
+                rater = annotation[annotations_rater_key]
+                annotation["rater"] = rater
+                annotations_per_image[image_name].append(annotation)
+        ### Case 2 - neither key is set
+        elif not images_rater_key and not annotations_rater_key:
+            image_id_to_file_path = {}
+            for image in unprocessed_annotations["images"]:
+                file_path = image["file_name"]
+                image_id = image["id"]
+                image_id_to_file_path[image_id] = (file_path)
+                if file_path in image_names:
+                    raters_per_image[file_path].append(image_id)
+                else:
+                    image_names.append(file_path)
+                    raters_per_image[file_path] = [image_id]
+                    image_size[file_path] = (image["height"], image["width"])
+            for annotation in unprocessed_annotations["annotations"]:
+                image_id = annotation["image_id"]
+                annotation["rater"] = image_id
+                annotations_per_image[ image_id_to_file_path[image_id] ].append(annotation)
         else:
-            return {}
+            raise Exception("This case is not supported")
+
+        self.image_names = image_names
+        self.raters_per_image = raters_per_image
+        self.annotations_per_image = annotations_per_image
+        self.size_per_image = image_size
+
+
+
