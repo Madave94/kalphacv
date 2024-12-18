@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kalphacv"
-version = "1.5"
+version = "1.5.1"
 authors = [
     { name="David Tschirschwitz", email="david.tschirschwitz@uni-weimar.de" }
 ]
@@ -23,3 +23,5 @@ dependencies = [
     "tqdm",
     "shapely"
 ]
+[project.urls]
+Github = "https://github.com/Madave94/kalphacv"
