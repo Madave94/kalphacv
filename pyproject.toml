@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kalphacv"
-version = "1.4"
+version = "1.5"
 authors = [
     { name="David Tschirschwitz", email="david.tschirschwitz@uni-weimar.de" }
 ]
@@ -19,7 +19,6 @@ classifiers = [
 dependencies = [
     'numpy',
     'scipy',
-    'pytest',
     'krippendorff',
     "pillow",
     "tqdm",
