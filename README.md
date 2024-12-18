@@ -1,15 +1,23 @@
 # Inter Annotator Agreement (IAA) in Computer Vision
 
-This is the code for evaluating Krippendorff's Alpha for object detection and instance segmentation as explained in our 
-paper (see at the bottom).
+This is the code for evaluating Krippendorff's Alpha for object detection and instance segmentation as explained in [our 
+paper](#2).
 
 ## 1 Installation
 
-### Clone via ssh
+### 1.1 Pip installation (for API use)
+
+`pip install kalphacv`
+
+Only available with [API Usage](#1).
+
+### 1.2 Source installation (for API and CLI use)
+
+####  Clone via ssh
  `git clone git@github.com:Madave94/kalphacv.git`
-### Clone via https
+#### Clone via https
 `git clone https://github.com/Madave94/kalphacv.git`
-## 2 Create and activate virtual environment
+#### Create and activate virtual environment
 
 Enter folder: `cd kalphacv`
 
@@ -19,7 +27,7 @@ Activate virtual environment: `source iaa_env/bin/activate`
 
 Run setup.py: `pip install .`
 
-## 3 Using the library
+## 2 Using the library
 
 The library is currently focused on calculating the inter annotator agreement (IAA) for:
 
@@ -27,7 +35,7 @@ The library is currently focused on calculating the inter annotator agreement (I
 - Segmentation Polygons (Instance Segmentation as used in COCO-Format)
 - [Not Recommended] Segmentation Masks (Instance Segmentation using rastarization of the labels)
 
-### 3.1 Target annotation format
+### 2.1 Target annotation format
 
 The data will be move to a canonical format that only contains the minimum information necessary to compute K-Alpha (IAA).
 To see which kind of annotations are accepted see chapter 3.2. For each image these are the following information:
@@ -54,7 +62,7 @@ For each annotation these are the following information
     }
 ```
 
-### 3.2 Accepted annotation formats
+### 2.2 Accepted annotation formats
 
 #### Option a (Recommended)
 
@@ -76,7 +84,7 @@ The different `image_id`'s will be used to look up which annotation belongs to w
 
 *Common use case*: If you extract annotations from CVAT you can use this directly.
 
-### 3.3 CLI Usage (call from the command line)
+### 2.3 CLI Usage (call from the command line, only available with source install)
 
 Get help for possible command line options:
 ```
@@ -87,7 +95,7 @@ Example call:
 python bbox /path/to/annotation/folder/ --folder
 ```
 
-### 3.4 API Usage (call from within another python script)
+### 2.4 <a id="1">API Usage</a>  (call from within another python script)
 
 If you are importing the package and using the `calculate_iaa_from_annotations` function directly in your code, you can do so as follows:
 
@@ -118,7 +126,9 @@ print(iaa_results)
 ```
 
 
-## Cite us
+## <a id="2">Cite us</a>
+
+[Link to paper.](https://madave94.github.io/assets/pdf/a_dataset_for_analysing_complex_layouts.pdf)
 
 ```
 @inproceedings{tschirschwitz2022,
