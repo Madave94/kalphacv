@@ -1,3 +1,7 @@
+> [!IMPORTANT]  
+> For a newer more advanced method to measure inter-annotator agreement go to:  
+> [https://github.com/Madave94/kalos](https://github.com/Madave94/kalos)
+
 # Inter Annotator Agreement (IAA) in Computer Vision
 
 This is the code for evaluating Krippendorff's Alpha for object detection and instance segmentation as explained in [our 
